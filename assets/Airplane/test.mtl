@@ -1,0 +1,72 @@
+# Blender 5.0.1 MTL File: 'test.blend'
+# www.blender.org
+
+newmtl 11803_Airplane_body
+Ns 51.000004
+Ka 1.000000 1.000000 1.000000
+Ks 0.540000 0.540000 0.540000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd 11803_Airplane_body_diff.jpg
+
+newmtl 11803_Airplane_tail
+Ns 29.999998
+Ka 1.000000 1.000000 1.000000
+Ks 0.279000 0.279000 0.279000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd 11803_Airplane_tail_diff.jpg
+
+newmtl 11803_Airplane_wing_L
+Ns 29.999998
+Ka 1.000000 1.000000 1.000000
+Ks 0.279000 0.279000 0.279000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd 11803_Airplane_wing_big_L_diff.jpg
+
+newmtl 11803_Airplane_wing_R
+Ns 29.999998
+Ka 1.000000 1.000000 1.000000
+Ks 0.279000 0.279000 0.279000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd 11803_Airplane_wing_big_R_diff.jpg
+
+newmtl 11803_Airplane_wing_details_L
+Ns 29.999998
+Ka 1.000000 1.000000 1.000000
+Ks 0.279000 0.279000 0.279000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd 11803_Airplane_wing_details_L_diff.jpg
+
+newmtl 11803_Airplane_wing_details_R
+Ns 29.999998
+Ka 1.000000 1.000000 1.000000
+Ks 0.279000 0.279000 0.279000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd 11803_Airplane_wing_details_R_diff.jpg
+
+newmtl Material
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
