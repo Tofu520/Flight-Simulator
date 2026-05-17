@@ -2,7 +2,7 @@
 
 A simple 3D flight simulator built with OpenGL. The aircraft is modelled after the **Piper PA-28 Cherokee** — a real-world single-engine trainer — using its published mass, thrust, cruise speed, and airfoil data to drive the flight physics.
 
-![Flight Simulator Demo](demo_photo.png)
+![Flight Simulator Demo](assets/images/demo_photo.png)
 *The sim at startup — PA-28 Cherokee in cruise at 2,000 m with the skybox and terrain visible.*
 
 ---
