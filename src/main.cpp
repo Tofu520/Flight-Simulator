@@ -1,10 +1,13 @@
 #include <iostream>
+#include <cstdio>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb/stb_image.h>
 #include "Mesh.h"
 #include "Model.h"
+#include "GltfModel.h"
 #include "Airplane.h"
+#include "TextRenderer.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -56,66 +59,72 @@ int main() {
     glViewport(0, 0, fbW, fbH);
 
     Shader shaderProgram("shaders/default.vert", "shaders/default.frag");
+    Shader terrainShader("shaders/terrain.vert", "shaders/terrain.frag");
     Shader skyboxShader ("shaders/skybox.vert",  "shaders/skybox.frag");
-    Shader lightShader  ("shaders/light.vert",   "shaders/light.frag");
+    TextRenderer hud(width, height, "/System/Library/Fonts/Monaco.ttf", 16);
 
     shaderProgram.Activate();
     skyboxShader.Activate();
     glUniform1i(glGetUniformLocation(skyboxShader.ID, "skybox"), 0);
 
-    Model airplaneModel("assets/Airplane/test.obj");
+    //PA-28 Cherokee GLB
+    GltfModel airplaneModel(
+        "assets/piper-pa-28-cherokee-general-aviation-aircraft/source/object_0 (1).glb");
 
     Airplane airplane;
-    airplane.mass           = 10000.0f;
-    airplane.engine.thrust  = 50000.0f;
+    //Piper Cherokee PA-28 specs
+    airplane.mass          = 1000.0f;  
+    airplane.engine.thrust = 1600.0f; 
 
-   airplane.set_inertia(glm::mat3(
-            48531.0f, -1320.0f,     0.0f,
-            -1320.0f,  256608.0f,    0.0f,
-            0.0f,     0.0f,      211333.0f
+    airplane.set_inertia(glm::mat3(
+        948.0f,   0.0f,    0.0f,
+          0.0f, 1346.0f,   0.0f,
+          0.0f,   0.0f, 15000.0f
     ));
 
-
     Airfoil NACA_0012(NACA_0012_data);
-    Airfoil NACA_2412(NACA_2412_data);
+    Airfoil NACA652415(NACA652415_data);
 
-    const float wing_offset = -0.2f;
-    const float tail_offset = -6.5f;
+    const float wing_offset = -0.3f;
+    const float tail_offset = -4.5f;
 
-    glm::vec3 wing_normal     = Wing::calc_wing_normal(phi::UP,  5.0f);
+    glm::vec3 wing_normal     = Wing::calc_wing_normal(phi::UP,  0.0f);
+    glm::vec3 elevator_normal = Wing::calc_wing_normal(phi::UP,  0.0f);
 
-    glm::vec3 elevator_normal = Wing::calc_wing_normal(phi::UP, -1.0f);
-
+    //Main wings — NACA 65(2)-415
     airplane.elements.push_back(Wing(
-        glm::vec3(wing_offset, 0.0f, -2.75f), 6.96f, 2.50f, &NACA_2412, wing_normal, 0.0f));
+        glm::vec3(wing_offset, 0.0f, -2.0f), 4.57f, 1.73f, &NACA652415, wing_normal, 0.0f));
     airplane.elements.push_back(Wing(
-        glm::vec3(wing_offset, 0.0f,  2.75f), 6.96f, 2.50f, &NACA_2412, wing_normal, 0.0f));
+        glm::vec3(wing_offset, 0.0f,  2.0f), 4.57f, 1.73f, &NACA652415, wing_normal, 0.0f));
 
+    //Ailerons
     airplane.elements.push_back(Wing(
-        glm::vec3(wing_offset - 1.5f, 0.0f, -2.0f), 3.80f, 1.26f, &NACA_0012, wing_normal, 1.0f));
+        glm::vec3(wing_offset - 1.5f, 0.0f, -3.2f), 2.0f, 0.4f, &NACA652415, wing_normal, 1.0f));
     airplane.elements.push_back(Wing(
-        glm::vec3(wing_offset - 1.5f, 0.0f,  2.0f), 3.80f, 1.26f, &NACA_0012, wing_normal, 1.0f));
+        glm::vec3(wing_offset - 1.5f, 0.0f,  3.2f), 2.0f, 0.4f, &NACA652415, wing_normal, 1.0f));
 
-   airplane.elements.push_back(Wing(
-    glm::vec3(tail_offset, 0.0f, 0.0f), 3.50f, 1.80f, &NACA_0012, elevator_normal, 1.0f));
-
+    //Elevator
     airplane.elements.push_back(Wing(
-        glm::vec3(tail_offset, 0.0f, 0.0f), 5.31f, 3.10f, &NACA_0012, phi::RIGHT, 1.0f));
+        glm::vec3(tail_offset, 0.0f, 0.0f), 3.35f, 0.9f, &NACA_0012, elevator_normal, 0.3f));
 
-    airplane.position = glm::vec3(0.0f, 100.0f, 0.0f);
-    airplane.velocity = glm::vec3(170.0f, 0.0f, 0.0f);
-    airplane.apply_gravity = true;
+    //Rudder
+    airplane.elements.push_back(Wing(
+        glm::vec3(tail_offset, 0.0f, 0.0f), 1.5f, 0.9f, &NACA_0012, phi::RIGHT, 0.5f));
 
-    //rotate model due to blender
+    airplane.position        = glm::vec3(0.0f, 2000.0f, 0.0f);
+    airplane.velocity        = glm::vec3(65.0f, 0.0f, 0.0f);
+    airplane.apply_gravity   = true;
+    airplane.engine.throttle = 1.0f;
+
+    //Rotate 90° around Y so the nose faces -Z
     const glm::quat modelCorrection =
-        glm::angleAxis(glm::radians(90.0f), glm::vec3(0,1,0)) *
-        glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1));
+        glm::angleAxis(glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 
     //Coordinate system: phi X=fwd, Y=up, Z=right  →  GL X=right, Y=up, Z=back
     const glm::quat coordConversion = glm::angleAxis(glm::radians(90.0f), glm::vec3(0,1,0));
 
-    Camera camera(width, height, glm::vec3(0.0f, 115.0f, 60.0f));
+    Camera camera(width, height, glm::vec3(0.0f, 1015.0f, 60.0f));
     
     unsigned int skyboxVAO, skyboxVBO, skyboxEBO;
     glGenVertexArrays(1, &skyboxVAO);
@@ -146,17 +155,17 @@ int main() {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    stbi_set_flip_vertically_on_load(false);
     for (unsigned int i = 0; i < 6; i++) {
         int w, h, ch;
         unsigned char* data = stbi_load(facesCubemap[i].c_str(), &w, &h, &ch, 0);
         if (data) {
-            stbi_set_flip_vertically_on_load(false);
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
                          0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
             stbi_image_free(data);
         } else {
             std::cout << "Failed to load cubemap face: " << facesCubemap[i] << std::endl;
-            stbi_image_free(data);
         }
     }
 
@@ -165,14 +174,17 @@ int main() {
     const int   gridSize = 1000;
     const float spacing  = 20.0f;
 
+    const float k = 10.0f * (0.05f / spacing);
     for (int x = 0; x < gridSize; x++) {
         for (int z = 0; z < gridSize; z++) {
-            float y = sinf(x * 0.05f) * cosf(z * 0.05f) * 10.0f;
+            float y    = sinf(x * 0.05f) * cosf(z * 0.05f) * 10.0f;
+            float dydx = cosf(x * 0.05f) * cosf(z * 0.05f) * k;
+            float dydz = -sinf(x * 0.05f) * sinf(z * 0.05f) * k;
             terrainVertices.push_back({
                 glm::vec3(x * spacing, y, z * spacing),
-                glm::vec3(0, 1, 0),
+                glm::normalize(glm::vec3(-dydx, 1.0f, -dydz)),
                 glm::vec3(0.3f, 0.6f, 0.2f),
-                glm::vec2(x * 0.1f, z * 0.1f)
+                glm::vec2(x * 0.001f, z * 0.001f)
             });
         }
     }
@@ -201,11 +213,10 @@ int main() {
         float dt  = glm::min(now - lastTime, 0.016f);
         lastTime  = now;
 
-         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            airplane.pitch_control =  1.0f;
-         }
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            airplane.pitch_control =  0.3f;
         else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            airplane.pitch_control =  -1.0f;   
+            airplane.pitch_control = -0.3f;
         else
             airplane.pitch_control =  0.0f;
 
@@ -216,10 +227,17 @@ int main() {
         else
             airplane.roll_control =  0.0f;
 
+        if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+            airplane.yaw_control = -1.0f;
+        else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
+            airplane.yaw_control =  1.0f;
+        else
+            airplane.yaw_control =  0.0f;
+
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-            airplane.engine.throttle = glm::min(airplane.engine.throttle + 0.01f, 1.0f);
+            airplane.engine.throttle = glm::min(airplane.engine.throttle + 0.4f * dt, 1.0f);
         else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-            airplane.engine.throttle = glm::max(airplane.engine.throttle - 0.01f, 0.0f);
+            airplane.engine.throttle = glm::max(airplane.engine.throttle - 0.4f * dt, 0.0f);
 
         airplane.update(dt);
 
@@ -260,7 +278,7 @@ int main() {
         glUniform3f(glGetUniformLocation(shaderProgram.ID, "camPos"),
                     camera.Position.x, camera.Position.y, camera.Position.z);
 
-        glm::vec3 sunDir = glm::normalize(glm::vec3(-1.0f, -1.0f, -0.5f));
+        glm::vec3 sunDir = glm::normalize(glm::vec3(1.0f, 1.0f, 0.5f));
         glUniform3fv(glGetUniformLocation(shaderProgram.ID, "lightPos"),
                      1, glm::value_ptr(sunDir));
         glUniform4f(glGetUniformLocation(shaderProgram.ID, "lightColor"),
@@ -269,11 +287,7 @@ int main() {
         glm::mat4 airplaneMat = glm::mat4(1.0f);
         airplaneMat = glm::translate(airplaneMat, renderPos);
         airplaneMat = airplaneMat * glm::mat4_cast(renderRot);
-        airplaneMat = glm::scale(airplaneMat, glm::vec3(0.05f));
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"),
-                           1, GL_FALSE, glm::value_ptr(airplaneMat));
-        airplaneModel.Draw(shaderProgram, camera);
-
+        airplaneMat = glm::scale(airplaneMat, glm::vec3(8.0f));
         glDepthFunc(GL_LEQUAL);
         skyboxShader.Activate();
 
@@ -296,30 +310,94 @@ int main() {
         glBindVertexArray(0);
         glDepthFunc(GL_LESS);
 
-        shaderProgram.Activate();
-        camera.Matrix(shaderProgram, "camMatrix");
+        terrainShader.Activate();
+        camera.Matrix(terrainShader, "camMatrix");
+        glUniform3f(glGetUniformLocation(terrainShader.ID, "camPos"),
+                    camera.Position.x, camera.Position.y, camera.Position.z);
+        glUniform3fv(glGetUniformLocation(terrainShader.ID, "lightPos"),
+                     1, glm::value_ptr(sunDir));
+        glUniform4f(glGetUniformLocation(terrainShader.ID, "lightColor"),
+                    1.0f, 1.0f, 0.95f, 1.0f);
+        glUniform1i(glGetUniformLocation(terrainShader.ID, "tex0"), 0);
 
         float tX = roundf(renderPos.x / (gridSize * spacing)) * (gridSize * spacing);
         float tZ = roundf(renderPos.z / (gridSize * spacing)) * (gridSize * spacing);
-        float tY = 0.0f;
 
         glm::mat4 terrainMat = glm::translate(glm::mat4(1.0f),
-        glm::vec3(tX - gridSize * spacing * 0.5f, tY, tZ - gridSize * spacing * 0.5f));
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"),
+            glm::vec3(tX - gridSize * spacing * 0.5f, 0.0f, tZ - gridSize * spacing * 0.5f));
+        glUniformMatrix4fv(glGetUniformLocation(terrainShader.ID, "model"),
                            1, GL_FALSE, glm::value_ptr(terrainMat));
-    
-        terrainMesh.Draw(shaderProgram, camera);
 
+        grassTex.Bind();
+        terrainMesh.VAO.Bind();
+        glDrawElements(GL_TRIANGLES, terrainMesh.indices.size(), GL_UNSIGNED_INT, 0);
+
+        shaderProgram.Activate();
+        camera.Matrix(shaderProgram, "camMatrix");
+        glUniform3f(glGetUniformLocation(shaderProgram.ID, "camPos"),
+                    camera.Position.x, camera.Position.y, camera.Position.z);
+        glUniform3fv(glGetUniformLocation(shaderProgram.ID, "lightPos"),
+                     1, glm::value_ptr(sunDir));
+        glUniform4f(glGetUniformLocation(shaderProgram.ID, "lightColor"),
+                    1.0f, 1.0f, 0.95f, 1.0f);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"),
                            1, GL_FALSE, glm::value_ptr(airplaneMat));
         airplaneModel.Draw(shaderProgram, camera);
+
+        {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDisable(GL_DEPTH_TEST);
+
+            float speed    = glm::length(airplane.velocity);
+            float alt_m    = airplane.position.y;
+            float vs_ms    = airplane.velocity.y;
+            float throttle = airplane.engine.throttle * 100.0f;
+            float yaw_rate = glm::degrees(airplane.angular_velocity.y);
+
+            glm::vec3 rgt  = airplane.rotation * phi::RIGHT;
+            float roll_deg = glm::degrees(std::atan2(rgt.y,
+                                 glm::length(glm::vec2(rgt.x, rgt.z))));
+
+            char buf[64];
+            const float x   = 14.0f;
+            const float top = (float)height - 24.0f;
+            const float dy  = 20.0f;
+            const glm::vec3 white(1.0f);
+            const glm::vec3 gray(0.15f, 0.15f, 0.18f);
+
+            //background panel — drawn before text
+            hud.DrawRect(6.0f, top - dy*5 - 8.0f, 230.0f, dy*5 + 32.0f, gray, 0.72f);
+
+            snprintf(buf, sizeof(buf), "SPD  %6.1f m/s", speed);
+            hud.RenderText(buf, x, top,       1.0f, white);
+
+            snprintf(buf, sizeof(buf), "ALT  %7.0f m",
+                     alt_m);
+            hud.RenderText(buf, x, top-dy,    1.0f, white);
+
+            snprintf(buf, sizeof(buf), "V/S  %+7.1f m/s", vs_ms);
+            hud.RenderText(buf, x, top-dy*2,  1.0f, white);
+
+            snprintf(buf, sizeof(buf), "THR  %5.1f%%", throttle);
+            hud.RenderText(buf, x, top-dy*3,  1.0f, white);
+
+            snprintf(buf, sizeof(buf), "ROLL %+6.1f deg", roll_deg);
+            hud.RenderText(buf, x, top-dy*4,  1.0f, white);
+
+            snprintf(buf, sizeof(buf), "YAW  %+6.1f d/s", yaw_rate);
+            hud.RenderText(buf, x, top-dy*5,  1.0f, white);
+
+            glEnable(GL_DEPTH_TEST);
+            glDisable(GL_BLEND);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     shaderProgram.Delete();
-    lightShader.Delete();
+    terrainShader.Delete();
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;

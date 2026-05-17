@@ -71,7 +71,8 @@ struct Wing {
       float induced_drag_coeff = phi::sq(lift_coeff) / (phi::PI * aspect_ratio * efficiency_factor);
       drag_coeff += induced_drag_coeff;
 
-      float air_density = isa::get_air_density(rigid_body->position.y);
+      float alt = glm::clamp(rigid_body->position.y, 0.0f, 11000.0f);
+      float air_density = isa::get_air_density(alt);
 
       float dynamic_pressure = 0.5f * phi::sq(speed) * air_density * area;
 

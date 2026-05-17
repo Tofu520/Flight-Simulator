@@ -9,7 +9,7 @@ in vec2 texCoord;
 
 uniform sampler2D tex0;
 uniform vec4 lightColor;
-uniform vec3 lightPos;   // direction toward sun (world space)
+uniform vec3 lightPos;
 uniform vec3 camPos;
 
 void main()
@@ -24,9 +24,9 @@ void main()
     float specular = 0.25 * spec;
 
     vec4 texColor = texture(tex0, texCoord);
+
     vec4 litColor = texColor * (ambient + diffuse + specular) * lightColor;
 
-    // Atmospheric fog – hides terrain edge seam and adds depth
     float dist      = length(camPos - crntPos);
     float fogFactor = 1.0 - clamp((dist - 4000.0) / 5000.0, 0.0, 1.0);
     vec4  fogColor  = vec4(0.53, 0.81, 0.98, 1.0);

@@ -9,8 +9,9 @@
 struct Airplane : public phi::RigidBody {
     Engine engine;
     std::vector<Wing> elements;
-    float pitch_control = 0.0f;  
-    float roll_control = 0.0f;   
+    float pitch_control = 0.0f;
+    float roll_control  = 0.0f;
+    float yaw_control   = 0.0f;
     
     Airplane() : engine(50000.0f) {
         mass = 10000.0f;
@@ -24,15 +25,15 @@ struct Airplane : public phi::RigidBody {
 
     void update(float dt) override
     {
-        engine.apply_force(this);
+        engine.apply_force(this, position.y);
 
         if (elements.size() >= 6) {
             elements[0].set_control_input(0.0f);          //left main wing 
             elements[1].set_control_input(0.0f);          //right main wing 
-            elements[2].set_control_input(-roll_control); // left aileron
-            elements[3].set_control_input(roll_control);  // right aileron
+            elements[2].set_control_input(roll_control);  // left aileron
+            elements[3].set_control_input(-roll_control); // right aileron
             elements[4].set_control_input(-pitch_control); // elevator
-            elements[5].set_control_input(0.0f);          //rudder
+            elements[5].set_control_input(yaw_control);   // rudder
         }
 
         for (auto& wing : elements){

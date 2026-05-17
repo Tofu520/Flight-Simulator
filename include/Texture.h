@@ -14,6 +14,8 @@ public:
 	GLuint unit;
 
 	Texture(const char* image, const char * texType, GLuint slot, GLenum format, GLenum pixelType);
+	//Wrap an already-uploaded GL texture (used by GltfModel for embedded GLB images)
+	Texture(GLuint id, const char* texType, GLuint slot);
 
 	// Assigns a texture unit to a texture
 	void texUnit(Shader& shader, const char* uniform, GLuint unit);

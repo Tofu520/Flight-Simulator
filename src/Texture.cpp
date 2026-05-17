@@ -44,6 +44,9 @@ Texture::Texture(const char* image, const char * texType, GLuint slot, GLenum fo
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+Texture::Texture(GLuint id, const char* texType, GLuint slot)
+    : ID(id), type(texType), unit(slot) {}
+
 void Texture::texUnit(Shader& shader, const char* uniform, GLuint unit)
 {
 	// Gets the location of the uniform
